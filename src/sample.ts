@@ -16,14 +16,18 @@ occaecati quia quod quidem. Ullam officia sunt quia.
 
 - apples
   - granny smith
+    - grandpa smith
   - applejack
+  - honey crisp
 - oranges
 - pears
 
+#+CAPTION: employees
 | №  | Name   | Surname |
 |----|--------|---------|
 | 1  | Carter | Hudson  |
 | 2  | Peter  | Rosas   |
+|----|--------|---------|
 | 15 | Joelle | Hartman |
 
 1. Carter Hudson
@@ -32,4 +36,4 @@ occaecati quia quod quidem. Ullam officia sunt quia.
 15. [@15] Joelle Hartman
 `;
 const oth = new OTH();
-console.dir(oth.parse(sample), { depth: 5 });
+console.dir(oth.parse(sample), { depth: 10 });
