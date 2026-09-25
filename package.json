@@ -1,0 +1,39 @@
+{
+  "name": "oth",
+  "version": "0.0.1",
+  "description": "Org to HTML parser",
+  "keywords": [
+    "org",
+    "markup",
+    "html"
+  ],
+  "homepage": "https://github.com/sanngridhr/oth#readme",
+  "bugs": {
+    "url": "https://github.com/sanngridhr/oth/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanngridhr/oth.git"
+  },
+  "license": "Beerware",
+  "author": "Sanngriðr",
+  "type": "module",
+  "main": "src/oth.ts",
+  "types": "./dist/oth.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/oth.d.ts",
+      "import": "./dist/oth.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2"
+  }
+}
