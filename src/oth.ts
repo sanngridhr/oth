@@ -1,17 +1,42 @@
-import Compiler from "./compiler/compiler.js";
-import Parser, { type ASTNode } from "./parser/parser.js";
+import { match } from "ts-pattern";
+
+import HTMLCompiler from "@/compiler/html.js";
+import type { ASTNode, Parser } from "@/parser/parser.js";
+import { ParserType } from "@/parser/parser.js";
+
+import type { Compiler } from "./compiler/compiler.js";
+import type { RegexParserOptions } from "./parser/regex.js";
+import RegexParser from "./parser/regex.js";
+
+enum CompilerType {
+  HTML = "html",
+  Markdown = "markdown",
+}
 
 class OTH {
   private readonly parser: Parser;
-  private readonly compiler: Compiler = new Compiler();
+  private readonly _compilers: Map<CompilerType, Compiler> = new Map<CompilerType, Compiler>();
 
-  constructor(tabSize?: number) {
-    this.parser = new Parser(tabSize);
+  private compiler(type: CompilerType): Compiler {
+    return this._compilers.getOrInsertComputed(type, (type: CompilerType): Compiler =>
+      match(type)
+        .with(CompilerType.HTML, (): HTMLCompiler => new HTMLCompiler())
+        .with(CompilerType.Markdown, (): never => {
+          throw new Error(`Markdown compilation is not implemented yet.`);
+        })
+        .exhaustive()
+    );
   }
 
-  parse(org: string): string {
+  constructor(parserOptions: RegexParserOptions) {
+    this.parser = match(parserOptions.type)
+      .with(ParserType.Regex, () => new RegexParser(parserOptions))
+      .exhaustive();
+  }
+
+  to_html(org: string): string {
     const ast: ASTNode[] = this.parser.parse(org);
-    const html = this.compiler.compile(ast);
+    const html: string = this.compiler(CompilerType.HTML).compile(ast);
 
     return html;
   }
