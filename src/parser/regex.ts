@@ -1,33 +1,10 @@
-import type { ASTNode, CommonParserOptions, ParserType } from "./parser.js";
+import { match, P } from "ts-pattern";
+
+import type { AnnotatedString, ASTNode, ParserOptions, ParserType } from "./parser.js";
 import { ASTNodeKind } from "./parser.js";
 
-export enum StringAnnotationKind {
-  Bold = "bold",
-  Code = "code",
-  Italic = "italic",
-  StrikeThrough = "strike-through",
-  Underlined = "underlined",
-  Verbatim = "verbatim",
-  //\\//\\//
-  Image = "image",
-  Link = "link",
-}
-export type StringAnnotation =
-  | {
-      kind:
-        | StringAnnotationKind.Bold
-        | StringAnnotationKind.Code
-        | StringAnnotationKind.Image
-        | StringAnnotationKind.Italic
-        | StringAnnotationKind.StrikeThrough
-        | StringAnnotationKind.Underlined
-        | StringAnnotationKind.Verbatim;
-    }
-  | { kind: StringAnnotationKind.Image | StringAnnotationKind.Link; link: string };
-export type AnnotatedString = [string, [[number, number], StringAnnotation]];
-
-export interface RegexParserOptions extends CommonParserOptions {
-  type: ParserType.Regex;
+export interface RegexParserOptions extends ParserOptions {
+  type?: ParserType.Regex;
 }
 
 class RegexParser {
@@ -48,7 +25,7 @@ class RegexParser {
       (ms: string[]): ASTNode => ({
         kind: ASTNodeKind.Headline,
         level: ms[0]!.length,
-        content: ms[1]!,
+        content: { text: ms[1]! },
       }),
     ],
     [
@@ -57,7 +34,7 @@ class RegexParser {
         kind: ASTNodeKind.ListItem,
         level: this.getListLevel(ms[0]!),
         ordered: false,
-        content: ms[1]!,
+        content: { text: ms[1]! },
       }),
     ],
     [
@@ -72,7 +49,7 @@ class RegexParser {
           level: this.getListLevel(ms[0]!),
           ordered: true,
           ...(position && { position }),
-          content: ms.at(-1)!,
+          content: { text: ms.at(-1)! },
         };
       },
     ],
@@ -90,7 +67,13 @@ class RegexParser {
       /^\|(.+)\|$/,
       (_: string[], line: string): ASTNode => ({
         kind: ASTNodeKind.Table,
-        cells: [[...line.matchAll(/\| *([^|]+?) *(?=\|)/g).map((m) => m[1]!)]],
+        cells: [
+          [
+            ...line
+              .matchAll(/\| *([^|]+?) *(?=\|)/g)
+              .map((m: string[]): AnnotatedString => ({ text: m[1]! })),
+          ],
+        ],
         breaks: [],
       }),
     ],
@@ -99,22 +82,20 @@ class RegexParser {
       /^(.+)$/,
       (ms: string[]): ASTNode => ({
         kind: ASTNodeKind.Paragraph,
-        content: ms[0]!,
+        content: { text: ms[0]! },
       }),
     ],
   ];
 
-  parse(org: string): ASTNode[] {
-    const lines: ASTNode[] = org
+  parse = (org: string): ASTNode[] =>
+    org
       .split("\n")
-      .map(this.annotateLine.bind(this))
+      .map(this.parseLine.bind(this))
       .reduce(this.reduceLines.bind(this), [])
+      .map(this.annotateNode.bind(this))
       .filter((l: ASTNode): boolean => l.kind != ASTNodeKind.Empty);
 
-    return lines;
-  }
-
-  protected annotateLine(line: string): ASTNode {
+  protected parseLine(line: string): ASTNode {
     for (const [rule, action] of this.rules) {
       const matches: string[] | null = rule.exec(line);
       if (matches != null) return action(matches.slice(1), line);
@@ -190,7 +171,7 @@ class RegexParser {
         break;
       case ASTNodeKind.Paragraph:
         if (last?.kind == ASTNodeKind.Paragraph) {
-          last.content += " " + current.content;
+          last.content.text += " " + current.content.text;
           lines.push(last);
         } else {
           if (last != undefined) lines.push(last);
@@ -226,8 +207,26 @@ class RegexParser {
     return lines;
   }
 
-  protected formatText(text: string) {
-    return;
+  protected annotateNode = (node: ASTNode): ASTNode =>
+    match(node)
+      .with(
+        { kind: P.union(ASTNodeKind.Headline, ASTNodeKind.ListItem, ASTNodeKind.Paragraph) },
+        (node: Extract<ASTNode, { content: AnnotatedString }>): ASTNode => ({
+          ...node,
+          content: this.annotateString(node.content),
+        })
+      )
+      .with(
+        { kind: ASTNodeKind.Table },
+        (node: Extract<ASTNode, { cells: AnnotatedString[][] }>): ASTNode => ({
+          ...node,
+          cells: node.cells.map((row: AnnotatedString[]) => row.map(this.annotateString)),
+        })
+      )
+      .otherwise((node: ASTNode) => node);
+
+  protected annotateString(string: AnnotatedString): AnnotatedString {
+    return string;
   }
 
   protected getListLevel(prefix: string): number {

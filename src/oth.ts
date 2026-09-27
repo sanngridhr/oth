@@ -1,17 +1,12 @@
 import { match } from "ts-pattern";
 
+import { type Compiler, CompilerType } from "@/compiler/compiler.js";
 import HTMLCompiler from "@/compiler/html.js";
-import type { ASTNode, Parser } from "@/parser/parser.js";
+import type { ASTNode, Parser, ParserOptions } from "@/parser/parser.js";
 import { ParserType } from "@/parser/parser.js";
+import RegexParser from "@/parser/regex.js";
 
-import type { Compiler } from "./compiler/compiler.js";
-import type { RegexParserOptions } from "./parser/regex.js";
-import RegexParser from "./parser/regex.js";
 
-enum CompilerType {
-  HTML = "html",
-  Markdown = "markdown",
-}
 
 class OTH {
   private readonly parser: Parser;
@@ -28,8 +23,8 @@ class OTH {
     );
   }
 
-  constructor(parserOptions: RegexParserOptions) {
-    this.parser = match(parserOptions.type)
+  constructor(parserOptions: ParserOptions) {
+    this.parser = match(parserOptions.type ?? ParserType.Regex)
       .with(ParserType.Regex, () => new RegexParser(parserOptions))
       .exhaustive();
   }
