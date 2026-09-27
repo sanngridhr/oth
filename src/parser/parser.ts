@@ -17,6 +17,7 @@ export interface Parser {
 export enum ASTNodeKind {
   Comment = "comment",
   Empty = "empty",
+  Footnote = "footnote",
   Headline = "headline",
   List = "list",
   ListItem = "list item",
@@ -28,6 +29,7 @@ export enum ASTNodeKind {
 export type ASTNode =
   | { kind: ASTNodeKind.Comment; content: string }
   | { kind: ASTNodeKind.Empty }
+  | { kind: ASTNodeKind.Footnote; name: string; content: AnnotatedString }
   | { kind: ASTNodeKind.Headline; level: number; content: AnnotatedString }
   | {
       kind: ASTNodeKind.List;
@@ -67,8 +69,9 @@ export enum AnnotationKind {
 }
 export type StringAnnotation =
   | { kind: AnnotationKind.Break; point: number }
-  | { kind: AnnotationKind.Footnote; point: number; name: string; }
-  | { kind: AnnotationKind.Footnote; point: number; definition: string; }
+  | { kind: AnnotationKind.Footnote; point: number; name: string }
+  | { kind: AnnotationKind.Footnote; point: number; definition: string }
+  | { kind: AnnotationKind.Footnote; point: number; name: string; definition: string }
   | {
       kind:
         | AnnotationKind.Bold

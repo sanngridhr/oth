@@ -38,7 +38,6 @@ class OTH {
 
   to_html(org: string): string {
     const ast: ASTNode[] = this.parser.parse(org);
-    console.dir(ast, {depth: 10})
     const html: string = this.compiler(CompilerType.HTML).compile(ast);
 
     return html;

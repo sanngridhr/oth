@@ -20,10 +20,10 @@ occaecati quia quod quidem. Ullam officia sunt quia.
 [[https://orgmode.org/][Org Main Page]] //
 [[https://upload.wikimedia.org/wikipedia/de/b/bb/Png-logo.png]] [fn:: do not piggyback]
 
-- apples
+- *apples*
   - granny smith
     - grandpa smith [fn:2]
-  - applejack
+  - applejack [fn:3: this is a horse]
   - honey crisp
 - oranges
 - pears

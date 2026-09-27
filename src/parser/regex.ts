@@ -85,6 +85,14 @@ class RegexParser {
         breaks: [],
       }),
     ],
+    [
+      /^\[fn:(.+?)] (.+?)$/,
+      (ms: string[]): ASTNode => ({
+        kind: ASTNodeKind.Footnote,
+        name: ms[0]!,
+        content: { text: ms[1]! },
+      }),
+    ],
     // Should be last, basically a catch-all
     [
       /^(.+)$/,
@@ -216,24 +224,51 @@ class RegexParser {
     return lines;
   }
 
-  private annotateNode(node: ASTNode): ASTNode {
-    return match(node)
+  private annotateNode = (node: ASTNode): ASTNode =>
+    match(node)
       .with(
-        { kind: P.union(ASTNodeKind.Headline, ASTNodeKind.ListItem, ASTNodeKind.Paragraph) },
+        { kind: P.union(ASTNodeKind.Headline, ASTNodeKind.Paragraph) },
         (node: Extract<ASTNode, { content: AnnotatedString }>): ASTNode => ({
           ...node,
           content: this.annotateString(node.content),
         })
       )
       .with(
+        { kind: ASTNodeKind.ListItem },
+        (node: Extract<ASTNode, { kind: ASTNodeKind.ListItem }>): ASTNode => ({
+          ...node,
+          content: this.annotateString(node.content),
+          ...(node.sublist && {
+            sublist: {
+              ...node.sublist,
+              items: node.sublist.items.map(
+                (
+                  i: Extract<ASTNode, { kind: ASTNodeKind.ListItem }>
+                ): Extract<ASTNode, { kind: ASTNodeKind.ListItem }> =>
+                  this.annotateNode(i) as typeof i
+              ),
+            },
+          }),
+        })
+      )
+      .with(
+        { kind: ASTNodeKind.List },
+        (node: Extract<ASTNode, { kind: ASTNodeKind.List }>): ASTNode => ({
+          ...node,
+          items: node.items.map(this.annotateNode) as Extract<
+            ASTNode,
+            { kind: ASTNodeKind.ListItem }
+          >[],
+        })
+      )
+      .with(
         { kind: ASTNodeKind.Table },
-        (node: Extract<ASTNode, { cells: AnnotatedString[][] }>): ASTNode => ({
+        (node: Extract<ASTNode, { kind: ASTNodeKind.Table }>): ASTNode => ({
           ...node,
           cells: node.cells.map((row: AnnotatedString[]) => row.map(this.annotateString)),
         })
       )
       .otherwise((node: ASTNode) => node);
-  }
 
   private annotateString = (string: AnnotatedString): AnnotatedString =>
     pipe(
@@ -243,7 +278,8 @@ class RegexParser {
         annotation: a ?? [],
       }),
       this.annotateStringFormat,
-      this.annotateStringLink
+      this.annotateStringLink,
+      this.annotateStringFootnote
     );
 
   private annotateStringFormat({
@@ -296,8 +332,6 @@ class RegexParser {
         const start: number = text.indexOf(whole);
         text = text.replace(whole, desc ?? urlAsDesc);
 
-        const end = 0;
-
         // As per https://orgmode.org/org.html#FOOT124
         const isImage = /\.(?:png|jpeg|jpg|gif|tiff|tif|xbm|xpm|pbm|pgm|ppm|pnm|svg|webp)/;
 
@@ -305,8 +339,34 @@ class RegexParser {
           kind: isImage.test(url ?? urlAsDesc) ? AnnotationKind.Image : AnnotationKind.Link,
           url: url ?? urlAsDesc,
           start: start,
-          end: end,
+          end: start + (desc ?? urlAsDesc).length,
         });
+      }
+    }
+
+    return { text: text, annotation: annotation };
+  }
+
+  private annotateStringFootnote({
+    text: text,
+    annotation: annotation,
+  }: AnnotatedString): AnnotatedString {
+    const regex = /\[fn(?::: (.+?)|:(.+?)(?::(.+?))?)]/g;
+    const matches: string[][] = [...text.matchAll(regex)];
+
+    if (matches.length != 0) {
+      for (const [whole, inlineDef, name, def] of matches as (
+        [string, string, undefined, undefined] | [string, undefined, string, string?]
+      )[]) {
+        const point: number = text.indexOf(whole);
+        text = text.replace(whole, "");
+
+        annotation?.push({
+          kind: AnnotationKind.Footnote,
+          point: point,
+          name: name,
+          definition: def ?? inlineDef,
+        } as StringAnnotation);
       }
     }
 

@@ -23,13 +23,15 @@ class HTMLCompiler implements Compiler {
       case ASTNodeKind.Comment:
         return "<!-- " + node.content + " -->";
       case ASTNodeKind.Headline:
-        return `<h${node.level}>` + node.content.text + `</h${node.level}>`;
+        return `<h${node.level}>` + this.formatText(node.content) + `</h${node.level}>`;
       case ASTNodeKind.List:
         return this.compileList(node);
       case ASTNodeKind.Paragraph:
-        return "<p>" + node.content.text + "</p>";
+        return "<p>" + this.formatText(node.content) + "</p>";
       case ASTNodeKind.Table:
         return this.compileTable(node);
+      case ASTNodeKind.Footnote:
+        return "TODO: implement footnotes";
     }
 
     throw new Error(
@@ -46,8 +48,8 @@ class HTMLCompiler implements Compiler {
 
   protected compileListItem(item: Extract<ASTNode, { kind: ASTNodeKind.ListItem }>): string {
     const innerHTML: string = item.sublist
-      ? item.content.text + this.compileList(item.sublist)
-      : item.content.text;
+      ? this.formatText(item.content) + this.compileList(item.sublist)
+      : this.formatText(item.content);
     const value: string = item.position ? ` value=${item.position}` : "";
 
     return `<li${value}>` + innerHTML + "</li>";
@@ -80,10 +82,14 @@ class HTMLCompiler implements Compiler {
 
   protected compileTableRow(row: AnnotatedString[], tag: string): string {
     const innerHTML: string = row
-      .map((cell: AnnotatedString): string => `<${tag}>` + cell.text + `</${tag}>`)
+      .map((cell: AnnotatedString): string => `<${tag}>` + this.formatText(cell) + `</${tag}>`)
       .join("");
 
     return `<tr>` + innerHTML + "</tr>";
+  }
+
+  protected formatText({text: text, annotation: annotation}: AnnotatedString): string {
+    return text + ((annotation && annotation.length > 0) ? `<!-- ${annotation.map((x) => x.kind).join()} -->`: "")
   }
 }
 
