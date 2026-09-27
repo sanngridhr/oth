@@ -19,10 +19,27 @@ class RegexParser {
   // Settings
   private readonly tabSize: number;
   private readonly keepComments: boolean;
+  private readonly imageFormats: string[];
 
   constructor(options: RegexParserOptions) {
     this.tabSize = options.tabSize ?? 4;
     this.keepComments = options.keepComments ?? false;
+    this.imageFormats = options.imageFormats ?? [
+      "png",
+      "jpeg",
+      "jpg",
+      "gif",
+      "tiff",
+      "tif",
+      "xbm",
+      "xpm",
+      "pbm",
+      "pgm",
+      "ppm",
+      "pnm",
+      "svg",
+      "webp",
+    ];
   }
 
   // Constants
@@ -278,7 +295,7 @@ class RegexParser {
         annotation: a ?? [],
       }),
       this.annotateStringFormat,
-      this.annotateStringLink,
+      this.annotateStringLink.bind(this),
       this.annotateStringFootnote
     );
 
@@ -333,7 +350,7 @@ class RegexParser {
         text = text.replace(whole, desc ?? urlAsDesc);
 
         // As per https://orgmode.org/org.html#FOOT124
-        const isImage = /\.(?:png|jpeg|jpg|gif|tiff|tif|xbm|xpm|pbm|pgm|ppm|pnm|svg|webp)/;
+        const isImage = new RegExp(`\\.(?:${this.imageFormats.join("|")})`);
 
         annotation?.push({
           kind: isImage.test(url ?? urlAsDesc) ? AnnotationKind.Image : AnnotationKind.Link,

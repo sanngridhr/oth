@@ -7,6 +7,7 @@ export interface ParserOptions {
   type?: ParserType;
   tabSize?: number;
   keepComments?: boolean;
+  imageFormats?: [string, ...string[]];
 }
 
 export interface Parser {

@@ -88,8 +88,13 @@ class HTMLCompiler implements Compiler {
     return `<tr>` + innerHTML + "</tr>";
   }
 
-  protected formatText({text: text, annotation: annotation}: AnnotatedString): string {
-    return text + ((annotation && annotation.length > 0) ? `<!-- ${annotation.map((x) => x.kind).join()} -->`: "")
+  protected formatText({ text: text, annotation: annotation }: AnnotatedString): string {
+    return (
+      text
+      + (annotation && annotation.length > 0
+        ? `<!-- ${annotation.map((x) => x.kind).join()} -->`
+        : "")
+    );
   }
 }
 
