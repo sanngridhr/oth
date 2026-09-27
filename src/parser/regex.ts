@@ -1,7 +1,15 @@
 import { match, P } from "ts-pattern";
 
-import type { AnnotatedString, ASTNode, ParserOptions, ParserType } from "./parser.js";
-import { ASTNodeKind } from "./parser.js";
+import pipe from "@/util/pipe.js";
+
+import type {
+  AnnotatedString,
+  ASTNode,
+  ParserOptions,
+  ParserType,
+  StringAnnotation,
+} from "./parser.js";
+import { AnnotationKind, ASTNodeKind } from "./parser.js";
 
 export interface RegexParserOptions extends ParserOptions {
   type?: ParserType.Regex;
@@ -87,15 +95,16 @@ class RegexParser {
     ],
   ];
 
-  parse = (org: string): ASTNode[] =>
-    org
+  parse(org: string): ASTNode[] {
+    return org
       .split("\n")
       .map(this.parseLine.bind(this))
       .reduce(this.reduceLines.bind(this), [])
       .map(this.annotateNode.bind(this))
       .filter((l: ASTNode): boolean => l.kind != ASTNodeKind.Empty);
+  }
 
-  protected parseLine(line: string): ASTNode {
+  private parseLine(line: string): ASTNode {
     for (const [rule, action] of this.rules) {
       const matches: string[] | null = rule.exec(line);
       if (matches != null) return action(matches.slice(1), line);
@@ -104,7 +113,7 @@ class RegexParser {
     throw new Error(`Line '${line}' does not match any rules.`);
   }
 
-  protected reduceLines(lines: ASTNode[], current: ASTNode): ASTNode[] {
+  private reduceLines(lines: ASTNode[], current: ASTNode): ASTNode[] {
     const last: ASTNode | undefined = lines.pop();
 
     switch (current.kind) {
@@ -207,8 +216,8 @@ class RegexParser {
     return lines;
   }
 
-  protected annotateNode = (node: ASTNode): ASTNode =>
-    match(node)
+  private annotateNode(node: ASTNode): ASTNode {
+    return match(node)
       .with(
         { kind: P.union(ASTNodeKind.Headline, ASTNodeKind.ListItem, ASTNodeKind.Paragraph) },
         (node: Extract<ASTNode, { content: AnnotatedString }>): ASTNode => ({
@@ -224,12 +233,87 @@ class RegexParser {
         })
       )
       .otherwise((node: ASTNode) => node);
-
-  protected annotateString(string: AnnotatedString): AnnotatedString {
-    return string;
   }
 
-  protected getListLevel(prefix: string): number {
+  private annotateString = (string: AnnotatedString): AnnotatedString =>
+    pipe(
+      string,
+      ({ text: t, annotation: a }: AnnotatedString): AnnotatedString => ({
+        text: t,
+        annotation: a ?? [],
+      }),
+      this.annotateStringFormat,
+      this.annotateStringLink
+    );
+
+  private annotateStringFormat({
+    text: text,
+    annotation: annotation,
+  }: AnnotatedString): AnnotatedString {
+    const regex = /(?<=\s|^)([*/_=~+])(\S+?)\1(?=\s|$)/g;
+    const matches: string[][] = [...text.matchAll(regex)];
+
+    if (matches.length != 0) {
+      for (const [whole, symbol, body] of matches as [
+        string,
+        "*" | "/" | "_" | "=" | "~" | "+",
+        string,
+      ][]) {
+        const start: number = text.indexOf(whole);
+        text = text.replace(whole, body);
+
+        const symbolToKind = {
+          "*": AnnotationKind.Bold,
+          "/": AnnotationKind.Italic,
+          _: AnnotationKind.Underlined,
+          "=": AnnotationKind.Verbatim,
+          "~": AnnotationKind.Code,
+          "+": AnnotationKind.StrikeThrough,
+        };
+
+        annotation?.push({
+          kind: symbolToKind[symbol],
+          start: start,
+          end: start + body.length,
+        } as StringAnnotation);
+      }
+    }
+
+    return { text: text, annotation: annotation };
+  }
+
+  private annotateStringLink({
+    text: text,
+    annotation: annotation,
+  }: AnnotatedString): AnnotatedString {
+    const regex = /\[\[(?:([^[\]]+?)]\[(.+?)|(.+?))]]/g;
+    const matches: string[][] = [...text.matchAll(regex)];
+
+    if (matches.length != 0) {
+      for (const [whole, url, desc, urlAsDesc] of matches as (
+        [string, undefined, undefined, string] | [string, string, string, undefined]
+      )[]) {
+        const start: number = text.indexOf(whole);
+        text = text.replace(whole, desc ?? urlAsDesc);
+
+        const end = 0;
+
+        // As per https://orgmode.org/org.html#FOOT124
+        const isImage = /\.(?:png|jpeg|jpg|gif|tiff|tif|xbm|xpm|pbm|pgm|ppm|pnm|svg|webp)/;
+
+        annotation?.push({
+          kind: isImage.test(url ?? urlAsDesc) ? AnnotationKind.Image : AnnotationKind.Link,
+          url: url ?? urlAsDesc,
+          start: start,
+          end: end,
+        });
+      }
+    }
+
+    return { text: text, annotation: annotation };
+  }
+
+  private getListLevel(prefix: string): number {
     const spaces: number = prefix.split(" ").length - 1;
     const tabs: number = prefix.split("\t").length - 1;
 

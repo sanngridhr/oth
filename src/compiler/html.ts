@@ -1,6 +1,6 @@
 import { inspect } from "util";
 
-import { type ASTNode, ASTNodeKind } from "@/parser/parser.js";
+import { type AnnotatedString, type ASTNode, ASTNodeKind } from "@/parser/parser.js";
 
 import type { Compiler } from "./compiler.js";
 
@@ -23,11 +23,11 @@ class HTMLCompiler implements Compiler {
       case ASTNodeKind.Comment:
         return "<!-- " + node.content + " -->";
       case ASTNodeKind.Headline:
-        return `<h${node.level}>` + node.content + `</h${node.level}>`;
+        return `<h${node.level}>` + node.content.text + `</h${node.level}>`;
       case ASTNodeKind.List:
         return this.compileList(node);
       case ASTNodeKind.Paragraph:
-        return "<p>" + node.content + "</p>";
+        return "<p>" + node.content.text + "</p>";
       case ASTNodeKind.Table:
         return this.compileTable(node);
     }
@@ -46,8 +46,8 @@ class HTMLCompiler implements Compiler {
 
   protected compileListItem(item: Extract<ASTNode, { kind: ASTNodeKind.ListItem }>): string {
     const innerHTML: string = item.sublist
-      ? item.content + this.compileList(item.sublist)
-      : item.content;
+      ? item.content.text + this.compileList(item.sublist)
+      : item.content.text;
     const value: string = item.position ? ` value=${item.position}` : "";
 
     return `<li${value}>` + innerHTML + "</li>";
@@ -70,15 +70,17 @@ class HTMLCompiler implements Compiler {
 
     const tableBody: string =
       "<tbody>"
-      + table.cells.map((row: string[]): string => this.compileTableRow(row, "td")).join("")
+      + table.cells
+        .map((row: AnnotatedString[]): string => this.compileTableRow(row, "td"))
+        .join("")
       + "</tbody>";
 
     return "<table>" + caption + tableHead + tableBody + tableFoot + "</table>";
   }
 
-  protected compileTableRow(row: string[], tag: string): string {
+  protected compileTableRow(row: AnnotatedString[], tag: string): string {
     const innerHTML: string = row
-      .map((cell: string): string => `<${tag}>` + cell + `</${tag}>`)
+      .map((cell: AnnotatedString): string => `<${tag}>` + cell.text + `</${tag}>`)
       .join("");
 
     return `<tr>` + innerHTML + "</tr>";

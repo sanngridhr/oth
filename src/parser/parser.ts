@@ -49,7 +49,8 @@ export type ASTNode =
   | { kind: ASTNodeKind.TableBreak };
 
 // Line formatting
-export enum StringFormat {
+export enum AnnotationKind {
+  Break = "break",
   Footnote = "footnote",
   //\\//\\//
   Bold = "bold",
@@ -65,28 +66,30 @@ export enum StringFormat {
   Link = "link",
 }
 export type StringAnnotation =
-  | {
-      kind: StringFormat.Footnote;
-      start: number;
-    }
+  | { kind: AnnotationKind.Break; point: number }
+  | { kind: AnnotationKind.Footnote; point: number; name: string; }
+  | { kind: AnnotationKind.Footnote; point: number; definition: string; }
   | {
       kind:
-        | StringFormat.Bold
-        | StringFormat.Code
-        | StringFormat.Italic
-        | StringFormat.StrikeThrough
-        | StringFormat.Sub
-        | StringFormat.Super
-        | StringFormat.Underlined
-        | StringFormat.Verbatim;
+        | AnnotationKind.Bold
+        | AnnotationKind.Code
+        | AnnotationKind.Italic
+        | AnnotationKind.StrikeThrough
+        | AnnotationKind.Sub
+        | AnnotationKind.Super
+        | AnnotationKind.Underlined
+        | AnnotationKind.Verbatim;
       start: number;
       end: number;
     }
   | {
-      kind: StringFormat.Image | StringFormat.Link;
-      link: string;
+      kind: AnnotationKind.Image | AnnotationKind.Link;
+      url: string;
       start: number;
       end: number;
     };
 
-export interface AnnotatedString {text: string, annotation?: StringAnnotation[]};
+export interface AnnotatedString {
+  text: string;
+  annotation?: StringAnnotation[];
+}

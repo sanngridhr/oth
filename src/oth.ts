@@ -6,7 +6,13 @@ import type { ASTNode, Parser, ParserOptions } from "@/parser/parser.js";
 import { ParserType } from "@/parser/parser.js";
 import RegexParser from "@/parser/regex.js";
 
+import getOrInsertComputed from "./util/Map.prototype.getOrInsertComputed.js";
 
+Map.prototype.getOrInsertComputed = getOrInsertComputed;
+
+interface Options {
+  parser?: ParserOptions;
+}
 
 class OTH {
   private readonly parser: Parser;
@@ -23,14 +29,16 @@ class OTH {
     );
   }
 
-  constructor(parserOptions: ParserOptions) {
-    this.parser = match(parserOptions.type ?? ParserType.Regex)
-      .with(ParserType.Regex, () => new RegexParser(parserOptions))
+  constructor(options: Options = {}) {
+    options.parser = options.parser ?? {};
+    this.parser = match(options.parser?.type ?? ParserType.Regex)
+      .with(ParserType.Regex, () => new RegexParser(options.parser!))
       .exhaustive();
   }
 
   to_html(org: string): string {
     const ast: ASTNode[] = this.parser.parse(org);
+    console.dir(ast, {depth: 10})
     const html: string = this.compiler(CompilerType.HTML).compile(ast);
 
     return html;

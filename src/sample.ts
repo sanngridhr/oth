@@ -16,9 +16,13 @@ occaecati quia quod quidem. Ullam officia sunt quia.
 
 *bold* /italic/ _underlined_ =verbatim= ~code~ +strike-through+ *​zero-width test*
 
+[[https://orgmode.org/org.html]] //
+[[https://orgmode.org/][Org Main Page]] //
+[[https://upload.wikimedia.org/wikipedia/de/b/bb/Png-logo.png]] [fn:: do not piggyback]
+
 - apples
   - granny smith
-    - grandpa smith
+    - grandpa smith [fn:2]
   - applejack
   - honey crisp
 - oranges
@@ -36,6 +40,8 @@ occaecati quia quod quidem. Ullam officia sunt quia.
 2. Peter Rosas
    1. His dog Lucky
 15. [@15] Joelle Hartman
+
+[fn:2] Not sure if this is an apple
 `;
 const oth = new OTH();
 console.dir(oth.to_html(sample), { depth: 10 });
