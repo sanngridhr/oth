@@ -5,6 +5,6 @@ export enum CompilerType {
   Markdown = "markdown",
 }
 
-export interface Compiler {
-  compile(ast: ASTNode[]): string;
+export abstract class Compiler {
+  abstract compile(ast: ASTNode[]): string;
 }

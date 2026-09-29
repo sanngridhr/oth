@@ -1,10 +1,12 @@
+import "@/util/String.prototype.insertAt.js"
+
 import { inspect } from "util";
 
-import { type AnnotatedString, type ASTNode, ASTNodeKind } from "@/parser/parser.js";
+import { type AnnotatedString, AnnotationKind, type ASTNode, ASTNodeKind } from "@/parser/parser.js";
 
-import type { Compiler } from "./compiler.js";
+import { Compiler } from "./compiler.js";
 
-class HTMLCompiler implements Compiler {
+class HTMLCompiler extends Compiler {
   compile(ast: ASTNode[]): string {
     return "<!DOCTYPE html><html>" + this.compileBody(ast) + "</html>";
   }
@@ -89,12 +91,26 @@ class HTMLCompiler implements Compiler {
   }
 
   protected formatText({ text: text, annotation: annotation }: AnnotatedString): string {
-    return (
-      text
-      + (annotation && annotation.length > 0
-        ? `<!-- ${annotation.map((x) => x.kind).join()} -->`
-        : "")
-    );
+    text.replaceAll("\n", "<br>")
+
+    if (annotation)
+      for (const anno of annotation) {
+        switch(anno.kind) {
+          case AnnotationKind.Footnote:
+          case AnnotationKind.Bold:
+          case AnnotationKind.Code:
+          case AnnotationKind.Italic:
+          case AnnotationKind.StrikeThrough:
+          case AnnotationKind.Sub:
+          case AnnotationKind.Super:
+          case AnnotationKind.Underlined:
+          case AnnotationKind.Verbatim:
+          case AnnotationKind.Image:
+          case AnnotationKind.Link:
+        }
+      }
+
+    return text
   }
 }
 

@@ -9,40 +9,17 @@ import type {
   ParserType,
   StringAnnotation,
 } from "./parser.js";
-import { AnnotationKind, ASTNodeKind } from "./parser.js";
+import { AnnotationKind, ASTNodeKind, Parser } from "./parser.js";
 
 export interface RegexParserOptions extends ParserOptions {
   type?: ParserType.Regex;
 }
 
-class RegexParser {
-  // Settings
-  private readonly tabSize: number;
-  private readonly keepComments: boolean;
-  private readonly imageFormats: string[];
-
+class RegexParser extends Parser {
   constructor(options: RegexParserOptions) {
-    this.tabSize = options.tabSize ?? 4;
-    this.keepComments = options.keepComments ?? false;
-    this.imageFormats = options.imageFormats ?? [
-      "png",
-      "jpeg",
-      "jpg",
-      "gif",
-      "tiff",
-      "tif",
-      "xbm",
-      "xpm",
-      "pbm",
-      "pgm",
-      "ppm",
-      "pnm",
-      "svg",
-      "webp",
-    ];
+    super(options)
   }
 
-  // Constants
   private readonly rules: [RegExp, (ms: string[], line: string) => ASTNode][] = [
     [/^$/, (): ASTNode => ({ kind: ASTNodeKind.Empty })],
     [
@@ -205,6 +182,7 @@ class RegexParser {
         break;
       case ASTNodeKind.Paragraph:
         if (last?.kind == ASTNodeKind.Paragraph) {
+          last.content.text.replace(/ ?\\\\/, "\n")
           last.content.text += " " + current.content.text;
           lines.push(last);
         } else {
@@ -306,7 +284,7 @@ class RegexParser {
     const regex = /(?<=\s|^)([*/_=~+])(\S+?)\1(?=\s|$)/g;
     const matches: string[][] = [...text.matchAll(regex)];
 
-    if (matches.length != 0) {
+    if (matches.length != 0)
       for (const [whole, symbol, body] of matches as [
         string,
         "*" | "/" | "_" | "=" | "~" | "+",
@@ -330,7 +308,6 @@ class RegexParser {
           end: start + body.length,
         } as StringAnnotation);
       }
-    }
 
     return { text: text, annotation: annotation };
   }
@@ -342,7 +319,7 @@ class RegexParser {
     const regex = /\[\[(?:([^[\]]+?)]\[(.+?)|(.+?))]]/g;
     const matches: string[][] = [...text.matchAll(regex)];
 
-    if (matches.length != 0) {
+    if (matches.length != 0)
       for (const [whole, url, desc, urlAsDesc] of matches as (
         [string, undefined, undefined, string] | [string, string, string, undefined]
       )[]) {
@@ -359,7 +336,6 @@ class RegexParser {
           end: start + (desc ?? urlAsDesc).length,
         });
       }
-    }
 
     return { text: text, annotation: annotation };
   }
@@ -371,7 +347,7 @@ class RegexParser {
     const regex = /\[fn(?::: (.+?)|:(.+?)(?::(.+?))?)]/g;
     const matches: string[][] = [...text.matchAll(regex)];
 
-    if (matches.length != 0) {
+    if (matches.length != 0)
       for (const [whole, inlineDef, name, def] of matches as (
         [string, string, undefined, undefined] | [string, undefined, string, string?]
       )[]) {
@@ -385,7 +361,6 @@ class RegexParser {
           definition: def ?? inlineDef,
         } as StringAnnotation);
       }
-    }
 
     return { text: text, annotation: annotation };
   }

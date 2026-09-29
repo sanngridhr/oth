@@ -10,8 +10,33 @@ export interface ParserOptions {
   imageFormats?: [string, ...string[]];
 }
 
-export interface Parser {
-  parse(org: string): ASTNode[];
+export abstract class Parser {
+  protected readonly tabSize: number;
+  protected readonly keepComments: boolean;
+  protected readonly imageFormats: string[];
+
+  constructor(options: ParserOptions) {
+    this.tabSize = options.tabSize ?? 4;
+    this.keepComments = options.keepComments ?? false;
+    this.imageFormats = options.imageFormats ?? [
+      "png",
+      "jpeg",
+      "jpg",
+      "gif",
+      "tiff",
+      "tif",
+      "xbm",
+      "xpm",
+      "pbm",
+      "pgm",
+      "ppm",
+      "pnm",
+      "svg",
+      "webp",
+    ];
+  }
+
+  abstract parse(org: string): ASTNode[]
 }
 
 // AST
@@ -53,7 +78,6 @@ export type ASTNode =
 
 // Line formatting
 export enum AnnotationKind {
-  Break = "break",
   Footnote = "footnote",
   //\\//\\//
   Bold = "bold",
@@ -69,7 +93,6 @@ export enum AnnotationKind {
   Link = "link",
 }
 export type StringAnnotation =
-  | { kind: AnnotationKind.Break; point: number }
   | { kind: AnnotationKind.Footnote; point: number; name: string }
   | { kind: AnnotationKind.Footnote; point: number; definition: string }
   | { kind: AnnotationKind.Footnote; point: number; name: string; definition: string }

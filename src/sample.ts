@@ -16,8 +16,8 @@ occaecati quia quod quidem. Ullam officia sunt quia.
 
 *bold* /italic/ _underlined_ =verbatim= ~code~ +strike-through+ *​zero-width test*
 
-[[https://orgmode.org/org.html]] //
-[[https://orgmode.org/][Org Main Page]] //
+[[https://orgmode.org/org.html]] \\\\
+[[https://orgmode.org/][Org Main Page]] \\\\
 [[https://upload.wikimedia.org/wikipedia/de/b/bb/Png-logo.png]] [fn:: do not piggyback]
 
 - *apples*

@@ -1,18 +1,12 @@
+import "@/util/Map.prototype.getOrInsertComputed.js"
+
 import { match } from "ts-pattern";
 
 import { type Compiler, CompilerType } from "@/compiler/compiler.js";
 import HTMLCompiler from "@/compiler/html.js";
-import type { ASTNode, Parser, ParserOptions } from "@/parser/parser.js";
+import { type ASTNode, type Parser, type ParserOptions } from "@/parser/parser.js";
 import { ParserType } from "@/parser/parser.js";
 import RegexParser from "@/parser/regex.js";
-
-import getOrInsertComputed from "./util/Map.prototype.getOrInsertComputed.js";
-
-Map.prototype.getOrInsertComputed = getOrInsertComputed;
-
-interface Options {
-  parser?: ParserOptions;
-}
 
 class OTH {
   private readonly parser: Parser;
@@ -29,10 +23,9 @@ class OTH {
     );
   }
 
-  constructor(options: Options = {}) {
-    options.parser = options.parser ?? {};
-    this.parser = match(options.parser?.type ?? ParserType.Regex)
-      .with(ParserType.Regex, () => new RegexParser(options.parser!))
+  constructor(parser: ParserOptions = {}) {
+    this.parser = match(parser?.type ?? ParserType.Regex)
+      .with(ParserType.Regex, () => new RegexParser(parser))
       .exhaustive();
   }
 
